@@ -1,0 +1,47 @@
+{
+  "name": "@omnidotdev/livestream",
+  "version": "0.1.0",
+  "description": "Shared LiveKit live-streaming core for the Omni ecosystem: neutral server room/token helpers and client broadcaster/viewer components. App-specific access control, persistence, and chat are injected, so the core stays reusable across products.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": {
+      "import": "./build/server/index.js",
+      "types": "./build/server/index.d.ts"
+    },
+    "./client": {
+      "import": "./build/client/index.js",
+      "types": "./build/client/index.d.ts"
+    }
+  },
+  "files": ["build"],
+  "scripts": {
+    "build": "bun build ./src/server/index.ts --outdir ./build/server --target node --external livekit-server-sdk && bun build ./src/client/index.tsx --outdir ./build/client --external react --external react/jsx-runtime --external react-dom --external '@livekit/components-react' --external '@livekit/components-styles' --external livekit-client && tsc",
+    "prepare": "bun run build",
+    "check": "biome check src"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "^2.15.4"
+  },
+  "peerDependencies": {
+    "@livekit/components-react": "^2.9.21",
+    "@livekit/components-styles": "^1.2.0",
+    "livekit-client": "^2.19.0",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@livekit/components-react": { "optional": true },
+    "@livekit/components-styles": { "optional": true },
+    "livekit-client": { "optional": true },
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@livekit/components-react": "^2.9.21",
+    "@livekit/components-styles": "^1.2.0",
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "livekit-client": "^2.19.0",
+    "react": "^19",
+    "typescript": "^5"
+  }
+}
