@@ -17,7 +17,6 @@
   "files": ["build"],
   "scripts": {
     "build": "bun build ./src/server/index.ts --outdir ./build/server --target node --external livekit-server-sdk && bun build ./src/client/index.tsx --outdir ./build/client --external react --external react/jsx-runtime --external react-dom --external '@livekit/components-react' --external '@livekit/components-styles' --external livekit-client && tsc",
-    "prepare": "bun run build",
     "check": "biome check src"
   },
   "dependencies": {
