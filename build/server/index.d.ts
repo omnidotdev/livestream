@@ -19,6 +19,24 @@ export interface LivekitServer {
      * viewers may only subscribe. Long TTL so a broadcast never silently drops.
      */
     mintToken(room: string, identity: string, isPublisher: boolean): Promise<string>;
+    /**
+     * Start recording a room to segmented HLS in S3-compatible storage. `prefix`
+     * is the object-key prefix (e.g. `recordings/<id>/`); the playlist is written
+     * to `<prefix>index.m3u8`. Returns the egress id (store it to stop later).
+     */
+    startRecording(room: string, prefix: string, s3: RecordingS3): Promise<{
+        egressId: string;
+    }>;
+    /** Stop a recording egress, finalizing and uploading the HLS output. */
+    stopRecording(egressId: string): Promise<void>;
+}
+/** S3-compatible storage for recordings (host-provided). */
+export interface RecordingS3 {
+    endpoint: string;
+    bucket: string;
+    accessKey: string;
+    secret: string;
+    region?: string;
 }
 /**
  * Create the server-side LiveKit helpers. The host app layers its own access

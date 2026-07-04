@@ -1,4 +1,11 @@
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import {
+  AccessToken,
+  EgressClient,
+  RoomServiceClient,
+  S3Upload,
+  SegmentedFileOutput,
+  SegmentedFileProtocol,
+} from "livekit-server-sdk";
 
 /**
  * Server-side LiveKit configuration for one deployment. The host app owns these
@@ -26,6 +33,29 @@ export interface LivekitServer {
     identity: string,
     isPublisher: boolean,
   ): Promise<string>;
+
+  /**
+   * Start recording a room to segmented HLS in S3-compatible storage. `prefix`
+   * is the object-key prefix (e.g. `recordings/<id>/`); the playlist is written
+   * to `<prefix>index.m3u8`. Returns the egress id (store it to stop later).
+   */
+  startRecording(
+    room: string,
+    prefix: string,
+    s3: RecordingS3,
+  ): Promise<{ egressId: string }>;
+
+  /** Stop a recording egress, finalizing and uploading the HLS output. */
+  stopRecording(egressId: string): Promise<void>;
+}
+
+/** S3-compatible storage for recordings (host-provided). */
+export interface RecordingS3 {
+  endpoint: string;
+  bucket: string;
+  accessKey: string;
+  secret: string;
+  region?: string;
 }
 
 /**
@@ -64,6 +94,35 @@ export function createLivekitServer(config: LivekitConfig): LivekitServer {
         canPublishData: isPublisher,
       });
       return at.toJwt();
+    },
+
+    async startRecording(room, prefix, s3) {
+      const egress = new EgressClient(httpUrl, config.apiKey, config.apiSecret);
+      // ~6s segments keep the HLS playlist responsive while limiting writes.
+      const output = new SegmentedFileOutput({
+        protocol: SegmentedFileProtocol.HLS_PROTOCOL,
+        filenamePrefix: prefix,
+        playlistName: "index.m3u8",
+        segmentDuration: 6,
+        output: {
+          case: "s3",
+          value: new S3Upload({
+            accessKey: s3.accessKey,
+            secret: s3.secret,
+            endpoint: s3.endpoint,
+            bucket: s3.bucket,
+            region: s3.region ?? "us-east-1",
+            forcePathStyle: true,
+          }),
+        },
+      });
+      const info = await egress.startRoomCompositeEgress(room, output);
+      return { egressId: info.egressId };
+    },
+
+    async stopRecording(egressId) {
+      const egress = new EgressClient(httpUrl, config.apiKey, config.apiSecret);
+      await egress.stopEgress(egressId);
     },
   };
 }
